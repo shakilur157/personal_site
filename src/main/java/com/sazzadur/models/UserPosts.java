@@ -25,6 +25,7 @@ public class UserPosts implements Serializable {
     String department;
 
     @NonNull
+    @Column(columnDefinition = "TEXT")
     String description;
 
     @NonNull
@@ -35,6 +36,7 @@ public class UserPosts implements Serializable {
     String studyLevel;
 
     @NonNull
+    @Column(columnDefinition = "TEXT")
     private String image;
 
     String status = "PENDING";

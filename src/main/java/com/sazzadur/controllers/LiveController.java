@@ -18,6 +18,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -45,8 +47,9 @@ public class LiveController {
 
 	@PreAuthorize("hasAuthority('USER')")
 	@RequestMapping(value = "/user/data", method = RequestMethod.POST)
-	public ResponseEntity<?> postUserData( @RequestBody UserPosts posts){
+	public ResponseEntity<?> postUserData(@RequestBody UserPosts posts){
 		try {
+			System.out.println(posts);
 			postRepository.save(posts);
 			return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", "upload success"), HttpStatus.OK);
 		}catch (Exception exception){
@@ -63,18 +66,35 @@ public class LiveController {
 			return  new ResponseEntity<CommonErrorResponse>(new CommonErrorResponse(HttpStatus.BAD_REQUEST.value(), "Something is missing, Please check again"), HttpStatus.BAD_REQUEST);
 		}
 	}
+
+	@PreAuthorize("hasAuthority('ADMIN')")
+	@RequestMapping(value = "/all/posts", method = RequestMethod.GET)
+	public ResponseEntity<?> getAllPosts(){
+		try {
+			Iterable<UserPosts> posts = postRepository.findAll();
+			List<UserPosts> users = new ArrayList<>();
+			posts.forEach(userPosts -> users.add(userPosts));
+			return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", users), HttpStatus.OK);
+		}catch (Exception exception){
+			return  new ResponseEntity<CommonErrorResponse>(new CommonErrorResponse(HttpStatus.BAD_REQUEST.value(), "Something is missing, Please check again"), HttpStatus.BAD_REQUEST);
+		}
+	}
 	@RequestMapping(value = "/accepted/requests", method = RequestMethod.GET)
 	public ResponseEntity<?> getAllAcceptedPosts(){
 		try {
-			Optional<UserPosts> posts = postRepository.findUserPostsByStatus("ACCEPTED");
-			return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", posts.get()), HttpStatus.OK);
+			List<Optional<UserPosts>> posts = postRepository.findAllByStatus("ACCEPTED");
+			if(posts.isEmpty()){
+				return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", "No records found"), HttpStatus.OK);
+			}else{
+				return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", posts), HttpStatus.OK);
+			}
 		}catch (Exception exception){
 			return  new ResponseEntity<CommonErrorResponse>(new CommonErrorResponse(HttpStatus.BAD_REQUEST.value(), "Something is missing, Please check again"), HttpStatus.BAD_REQUEST);
 		}
 	}
 
 	@PreAuthorize("hasAuthority('ADMIN')")
-	@RequestMapping(value = "/accept/request/{id}", method = RequestMethod.POST)
+	@RequestMapping(value = "/accept/request/{id}", method = RequestMethod.GET)
 	public ResponseEntity<?> acceptPendingRequest(@PathVariable Long id){
 		try {
 			Optional<UserPosts> posts = postRepository.findById(id);
@@ -82,6 +102,17 @@ public class LiveController {
 			tempPost.setStatus("ACCEPTED");
 			postRepository.save(tempPost);
 			return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", posts.get()), HttpStatus.OK);
+		}catch (Exception exception){
+			return  new ResponseEntity<CommonErrorResponse>(new CommonErrorResponse(HttpStatus.BAD_REQUEST.value(), "Something is missing, Please check again"), HttpStatus.BAD_REQUEST);
+		}
+	}
+
+	@PreAuthorize("hasAuthority('ADMIN')")
+	@RequestMapping(value = "/delete/post/{id}", method = RequestMethod.DELETE)
+	public ResponseEntity<?> deletePost(@PathVariable Long id){
+		try {
+			postRepository.deleteById(id);
+			return new ResponseEntity<CommonResponse>(new CommonResponse(200, "success", "post deleted successfully"), HttpStatus.OK);
 		}catch (Exception exception){
 			return  new ResponseEntity<CommonErrorResponse>(new CommonErrorResponse(HttpStatus.BAD_REQUEST.value(), "Something is missing, Please check again"), HttpStatus.BAD_REQUEST);
 		}
